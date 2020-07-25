@@ -77,7 +77,7 @@ for ji, p in enumerate(jpg_names):
             min_size = [max_size[k] - crop_size[k] for k in range(2)]
             cropped_im = np.copy(im[min_size[0]:max_size[0], min_size[1]:max_size[1]])
             # generate_tfrecordが失敗するためignore_emptyはとりあえずTrue←別原因だったので関係ないかも
-            empty, gray, written, ngemptyi = write_cropped_im(dpath, p, size, crop_size, crop_index, min_size, cropped_im, ngemptyi, True)
+            empty, gray, written, ngemptyi = write_cropped_im(dpath, p, size, crop_size, crop_index, min_size, cropped_im, ngemptyi, False)
             if written:
                 totalc += 1
                 if empty:
