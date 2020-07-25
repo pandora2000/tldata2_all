@@ -1,5 +1,5 @@
 import os, shutil, cv2, numpy as np
-def write_cropped_im(dpath, fname, size, crop_size, crop_index, crop_loc, cropped_im, ngemptyi):
+def write_cropped_im(dpath, fname, size, crop_size, crop_index, crop_loc, cropped_im, ngemptyi, ignore_empty):
     fnamewox = fname[:-4]
     cropped_fname = f'{fnamewox}_{crop_index[0]}_{crop_index[1]}.jpg'
     tfpath = f'{dpath}/all/{fnamewox}.txt'
@@ -38,7 +38,7 @@ def write_cropped_im(dpath, fname, size, crop_size, crop_index, crop_loc, croppe
     empty = len(cropped_tdata) == 0
     written = False
     # not grayでかつannotationが無い場合は、100回に1回のみ保存する。grayは保存しない
-    if not gray and (not empty or ngemptyi % 100 == 0):
+    if not gray and (not empty or (not ignore_empty and ngemptyi % 100 == 0)):
         cropped_tfpath = f'{dpath}/cropped/{fnamewox}_{crop_index[0]}_{crop_index[1]}.txt'
         with open(cropped_tfpath, 'w') as f:
             f.write('\n'.join([' '.join(x) for x in cropped_tdata]))
@@ -76,7 +76,8 @@ for ji, p in enumerate(jpg_names):
             max_size = [min([crop_index[k] * overlap_size[k] + crop_size[k], size[k]]) for k in range(2)]
             min_size = [max_size[k] - crop_size[k] for k in range(2)]
             cropped_im = np.copy(im[min_size[0]:max_size[0], min_size[1]:max_size[1]])
-            empty, gray, written, ngemptyi = write_cropped_im(dpath, p, size, crop_size, crop_index, min_size, cropped_im, ngemptyi)
+            # generate_tfrecordが失敗するためignore_emptyはとりあえずTrue
+            empty, gray, written, ngemptyi = write_cropped_im(dpath, p, size, crop_size, crop_index, min_size, cropped_im, ngemptyi, True)
             if written:
                 totalc += 1
                 if empty:
