@@ -1,5 +1,5 @@
 import os, shutil, cv2, numpy as np
-def write_cropped_im(dpath, fname, size, crop_size, crop_index, crop_loc, cropped_im):
+def write_cropped_im(dpath, fname, size, crop_size, crop_index, crop_loc, cropped_im, empty_index):
     fnamewox = fname[:-4]
     cropped_fname = f'{fnamewox}_{crop_index[0]}_{crop_index[1]}.jpg'
     tfpath = f'{dpath}/all/{fnamewox}.txt'
@@ -33,11 +33,15 @@ def write_cropped_im(dpath, fname, size, crop_size, crop_index, crop_loc, croppe
             *cropped_center_p[::-1],
             *loc_size_p[::-1]
         ]])
-    cropped_tfpath = f'{dpath}/cropped/{fnamewox}_{crop_index[0]}_{crop_index[1]}.txt'
-    with open(cropped_tfpath, 'w') as f:
-        f.write('\n'.join([' '.join(x) for x in cropped_tdata]))
-    cropped_fpath = f'{dpath}/cropped/{fnamewox}_{crop_index[0]}_{crop_index[1]}.jpg'
-    cv2.imwrite(cropped_fpath, cropped_im)
+    empty = len(cropped_tdata) == 0
+    # annotationが無い場合は、10回に1回のみ保存する
+    if not empty or empty_index % 10 == 0:
+        cropped_tfpath = f'{dpath}/cropped/{fnamewox}_{crop_index[0]}_{crop_index[1]}.txt'
+        with open(cropped_tfpath, 'w') as f:
+            f.write('\n'.join([' '.join(x) for x in cropped_tdata]))
+        cropped_fpath = f'{dpath}/cropped/{fnamewox}_{crop_index[0]}_{crop_index[1]}.jpg'
+        cv2.imwrite(cropped_fpath, cropped_im)
+    return empty
 dpath = os.path.dirname(os.path.realpath(__file__))
 shutil.rmtree(f'{dpath}/cropped', ignore_errors=True)
 os.makedirs(f'{dpath}/cropped')
@@ -45,6 +49,7 @@ crop_size = [640, 480]
 overlap_size = [320, 240]
 jpg_names = [p for p in os.listdir(f'{dpath}/all') if p[-4:] == '.jpg']
 os.system(f'cp {dpath}/all/classes.txt {dpath}/cropped/')
+emptyi = 0
 for ji, p in enumerate(jpg_names):
     print(f'{ji + 1} / {len(jpg_names)}')
     print(f'name: {p}')
@@ -63,4 +68,6 @@ for ji, p in enumerate(jpg_names):
             max_size = [min([crop_index[k] * overlap_size[k] + crop_size[k], size[k]]) for k in range(2)]
             min_size = [max_size[k] - crop_size[k] for k in range(2)]
             cropped_im = np.copy(im[min_size[0]:max_size[0], min_size[1]:max_size[1]])
-            write_cropped_im(dpath, p, size, crop_size, crop_index, min_size, cropped_im)
+            empty_data = write_cropped_im(dpath, p, size, crop_size, crop_index, min_size, cropped_im, emptyi)
+            if empty_data:
+                emptyi += 1
