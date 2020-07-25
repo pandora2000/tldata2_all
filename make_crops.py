@@ -1,4 +1,4 @@
-import os, shutil, cv2
+import os, shutil, cv2, numpy as np
 def write_cropped_im(dpath, fname, size, crop_size, crop_index, crop_loc, cropped_im):
     fnamewox = fname[:-4]
     cropped_fname = f'{fnamewox}_{crop_index[0]}_{crop_index[1]}.jpg'
@@ -13,9 +13,17 @@ def write_cropped_im(dpath, fname, size, crop_size, crop_index, crop_loc, croppe
         loc_max = [loc[i] + loc_size[i] for i in range(2)]
         cropped_loc = [max([0, loc[i] - crop_loc[i]]) for i in range(2)]
         cropped_max = [min([loc_max[i] - crop_loc[i], crop_size[i]]) for i in range(2)]
-        if any([cropped_loc[i] <= cropped_max[i] for i in range(2)]):
+        # print(f'loc: {loc}')
+        # print(f'loc_size: {loc_size}')
+        # print(f'loc_max: {loc_max}')
+        # print(f'crop_index: {crop_index}')
+        # print(f'crop_loc: {crop_loc}')
+        # print(f'cropped_loc: {cropped_loc}')
+        # print(f'cropped_max: {cropped_max}')
+        if any([cropped_loc[i] >= cropped_max[i] for i in range(2)]):
             continue
-        if any([cropped_max[i] - cropped_loc[i] == loc_size[i] for i in range(2)]):
+        if any([cropped_max[i] - cropped_loc[i] != loc_size[i] for i in range(2)]):
+            print(f'gray zone rendered on {crop_index}')
             cropped_im[cropped_loc[0]:cropped_max[0], cropped_loc[1]:cropped_max[1]] = 127
             continue
         cropped_center_p = [(cropped_loc[i] + cropped_max[i]) / 2 / crop_size[i] for i in range(2)]
@@ -36,6 +44,7 @@ os.makedirs(f'{dpath}/cropped')
 crop_size = [640, 480]
 overlap_size = [320, 240]
 jpg_names = [p for p in os.listdir(f'{dpath}/all') if p[-4:] == '.jpg']
+os.system(f'cp {dpath}/all/classes.txt {dpath}/cropped/')
 for ji, p in enumerate(jpg_names):
     print(f'{ji + 1} / {len(jpg_names)}')
     print(f'name: {p}')
@@ -53,5 +62,5 @@ for ji, p in enumerate(jpg_names):
             crop_index = [i, j]
             max_size = [min([crop_index[k] * overlap_size[k] + crop_size[k], size[k]]) for k in range(2)]
             min_size = [max_size[k] - crop_size[k] for k in range(2)]
-            cropped_im = im[min_size[0]:max_size[0], min_size[1]:max_size[1]]
+            cropped_im = np.copy(im[min_size[0]:max_size[0], min_size[1]:max_size[1]])
             write_cropped_im(dpath, p, size, crop_size, crop_index, min_size, cropped_im)
